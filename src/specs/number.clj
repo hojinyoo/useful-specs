@@ -1,5 +1,5 @@
 (ns specs.number
-  (:require [clojure.spec :as s]
+  (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen :as gen])
   (:import [java.math BigDecimal MathContext RoundingMode]))
 
