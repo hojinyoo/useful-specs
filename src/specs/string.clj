@@ -1,6 +1,6 @@
 (ns specs.string
   "Experiments expressing string specs as char seq specs"
-  (:require [clojure.spec :as s]
+  (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen :as gen]
             [clojure.string :as string]))
 
