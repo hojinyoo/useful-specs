@@ -8,27 +8,32 @@
   (:import [java.net URI]
            [java.util.regex Pattern]))
 
-(s/def ::hostpart
-  (letfn [(pred [s]
-            (re-matches #"\A(?:\p{Alnum}|\p{Alnum}(?:\p{Alnum}|-)*\p{Alnum})\z" s))
-          (gen []
-            (let [middle-char (gen/fmap char
-                                        (gen/one-of [(gen/choose 48 57)
-                                                     (gen/choose 65 90)
-                                                     (gen/choose 97 122)
-                                                     (gen/return 45)]))]
-              (gen/let [length (gen/choose 1 64)]
-                (let [chars-gen (if (= 1 length)
-                                  (gen/vector gen/char-alphanumeric 1)
-                                  (gen/let [first-char gen/char-alphanumeric
-                                            last-char gen/char-alphanumeric
-                                            middle-chars (gen/vector middle-char
-                                                                     (- length 2))]
-                                    (gen/return (-> [first-char]
-                                                    (into middle-chars)
-                                                    (conj last-char)))))]
-                  (gen/fmap string/join chars-gen)))))]
-    (s/spec pred :gen gen)))
+(defn hostpart
+  [& options]
+  (let [{:keys [min-length max-length]} options
+        clip (fn [n lower upper] (if (< n lower) lower (if (> n upper) upper n)))
+        max-gen (clip (or max-length 64) 1 64)
+        min-gen (clip (or min-length 1) 1 max-gen)]
+    (letfn [(pred [s]
+              (re-matches #"\A(?:\p{Alnum}|\p{Alnum}(?:\p{Alnum}|-)*\p{Alnum})\z" s))
+            (gen []
+                 (let [middle-char (gen/fmap char
+                                             (gen/one-of [(gen/choose 48 57)
+                                                          (gen/choose 65 90)
+                                                          (gen/choose 97 122)
+                                                          (gen/return 45)]))]
+                   (gen/let [length (gen/choose min-gen max-gen)]
+                     (let [chars-gen (if (= 1 length)
+                                       (gen/vector gen/char-alphanumeric 1)
+                                       (gen/let [first-char gen/char-alphanumeric
+                                                 last-char gen/char-alphanumeric
+                                                 middle-chars (gen/vector middle-char
+                                                                          (- length 2))]
+                                         (gen/return (-> [first-char]
+                                                         (into middle-chars)
+                                                         (conj last-char)))))]
+                       (gen/fmap string/join chars-gen)))))]
+      (s/spec pred :gen gen))))
 
 (defn hostname
   "Returns a spec for an Internet hostname that conforms to RFC1123. Options may
@@ -36,10 +41,13 @@
 
    :domains - the set of allowed domains
    :min-depth - the minimum number of parts
-   :max-depth - the maximum number of parts"
+   :max-depth - the maximum number of parts
+   :min-host-length - the minimum length of the host part
+   :max-host-length - the maximum length of the host part"
   [& options]
-  (let [{:keys [domains min-depth max-depth]} options
-        hostpart-spec (s/get-spec ::hostpart)
+  (let [{:keys [domains min-depth max-depth min-host-length max-host-length]} options
+        ; hostpart-spec (s/get-spec ::hostpart)
+        hostpart-spec (hostpart :min-length min-host-length :max-length max-host-length)
         domain-re (when (seq domains)
                     (re-pattern (str "\\."
                                      (string/join "|" (map #(Pattern/quote (string/lower-case %)) domains))
