@@ -163,8 +163,8 @@
                 (gen/return (str local-part "@" hostname-part))))]
       (s/spec pred :gen gen))))
 
-(s/def ::email-address
-  (email-address :domains tlds))
+(s/def ::email-address (s/and string?
+                              (email-address :domains tlds)))
 
 (s/def ::common-email-address
   (email-address :hosts #{"gmail.com" "yahoo.com" "outlook.com" "aol.com"}))
